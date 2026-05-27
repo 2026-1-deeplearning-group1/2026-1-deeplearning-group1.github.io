@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CIFAR-100 Misclassification Gallery</title>
+  <title>CIFAR-100 Model Error Analysis</title>
   <style>
     :root {
       --bg: #f7f8fa;
@@ -12,11 +12,11 @@
       --muted: #64748b;
       --border: #d9e2ec;
       --accent: #2563eb;
+      --bad: #dc2626;
+      --bar: #2563eb;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -27,9 +27,9 @@
     }
 
     main {
-      max-width: 980px;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 48px 20px;
+      padding: 40px 20px 56px;
     }
 
     h1 {
@@ -38,8 +38,18 @@
       letter-spacing: 0;
     }
 
+    h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
     .subtitle {
-      margin: 0 0 32px;
+      margin: 0 0 28px;
       color: var(--muted);
       font-size: 15px;
     }
@@ -48,11 +58,12 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
+      margin-bottom: 24px;
     }
 
     .card {
       display: block;
-      padding: 20px;
+      padding: 18px;
       border: 1px solid var(--border);
       border-radius: 8px;
       background: var(--panel);
@@ -60,13 +71,11 @@
       text-decoration: none;
     }
 
-    .card:hover {
-      border-color: var(--accent);
-    }
+    .card:hover { border-color: var(--accent); }
 
     .card h2 {
       margin: 0 0 8px;
-      font-size: 20px;
+      font-size: 19px;
     }
 
     .card p {
@@ -90,12 +99,140 @@
       padding-top: 6px;
     }
 
-    .metric span:first-child {
+    .metric span:first-child { color: var(--muted); }
+
+    .panel {
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .viz-grid {
+      display: grid;
+      grid-template-columns: 430px minmax(520px, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .viz-grid { grid-template-columns: 1fr; }
+    }
+
+    .viz-box {
+      min-width: 0;
+      overflow-x: auto;
+      border: 1px solid #eef2f6;
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 380px;
+      height: auto;
+      border: 1px solid #e5e7eb;
+      image-rendering: pixelated;
+    }
+
+    .hint {
+      margin: 8px 0 0;
       color: var(--muted);
+      font-size: 13px;
+    }
+
+    .error {
+      color: var(--bad);
+      font-size: 14px;
+    }
+
+    .class-table-wrap {
+      max-height: 760px;
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f1f5f9;
+      border-bottom: 1px solid #cbd5e1;
+      color: #334155;
+      text-align: left;
+      padding: 8px;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      border-bottom: 1px solid #eef2f6;
+      padding: 6px 8px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar-cell {
+      min-width: 180px;
+      width: 36%;
+    }
+
+    .bar-bg {
+      height: 14px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--bar);
+      border-radius: 999px;
     }
 
     .note {
-      margin-top: 32px;
+      margin-top: 24px;
       padding: 14px 16px;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -107,9 +244,9 @@
 </head>
 <body>
   <main>
-    <h1>CIFAR-100 Misclassification Gallery</h1>
+    <h1>CIFAR-100 Model Error Analysis</h1>
     <p class="subtitle">
-      Ground-truth label과 model prediction이 다른 대표 오분류 샘플 모음입니다.
+      모델별 오분류 샘플, 혼동행렬, 100개 클래스별 정확도 비교.
     </p>
 
     <section class="grid">
@@ -133,9 +270,9 @@
         </div>
       </a>
 
-      <a class="card" href="./current_convnext_ep62/">
-        <h2>Current: ConvNeXt EP62</h2>
-        <p>ConvNeXtV2-Tiny MSG Plain+LN KD</p>
+      <a class="card" href="./current_ep62/">
+        <h2>Current</h2>
+        <p>Current Model</p>
         <div class="metrics">
           <div class="metric"><span>Top-1 Accuracy</span><strong>93.14%</strong></div>
           <div class="metric"><span>Params</span><strong>29.14M</strong></div>
@@ -144,10 +281,249 @@
       </a>
     </section>
 
+    <section class="panel">
+      <h2>Visual Analysis</h2>
+      <div class="tabs" id="tabs"></div>
+
+      <div class="viz-grid">
+        <div class="viz-box">
+          <h3>Confusion Matrix</h3>
+          <canvas id="confusionCanvas" width="100" height="100"></canvas>
+          <p class="hint">
+            행은 GT label, 열은 model prediction입니다. 대각선이 강할수록 정확합니다.
+          </p>
+          <p id="matrixStatus" class="error"></p>
+        </div>
+
+        <div class="viz-box">
+          <h3>Class Accuracy, All 100 Classes</h3>
+          <div id="classTable"></div>
+          <p class="hint">
+            CIFAR-100 testset은 클래스당 100장입니다. 표는 정확도 오름차순으로 정렬됩니다.
+          </p>
+          <p id="classStatus" class="error"></p>
+        </div>
+      </div>
+    </section>
+
     <div class="note">
       Note: 오분류는 CIFAR-100 testset의 GT label 기준 불일치입니다.
       일부 이미지는 해상도가 낮거나 라벨이 시각적으로 애매해서, 사람이 보기에는 model prediction이 더 자연스러워 보일 수 있습니다.
     </div>
   </main>
+
+  <script>
+    const models = [
+      {
+        key: "baseline1_simple_vgg",
+        label: "Simple-VGG",
+        folder: "./baseline1_simple_vgg/"
+      },
+      {
+        key: "baseline2_resnet18",
+        label: "ResNet-18",
+        folder: "./baseline2_resnet18/"
+      },
+      {
+        key: "current_ep62",
+        label: "EP62",
+        folder: "./current_ep62/"
+      }
+    ];
+
+    const tabs = document.getElementById("tabs");
+    const matrixStatus = document.getElementById("matrixStatus");
+    const classStatus = document.getElementById("classStatus");
+    const canvas = document.getElementById("confusionCanvas");
+    const ctx = canvas.getContext("2d");
+    const classTable = document.getElementById("classTable");
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cur = "";
+      let quoted = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+
+        if (ch === '"' && quoted && next === '"') {
+          cur += '"';
+          i++;
+        } else if (ch === '"') {
+          quoted = !quoted;
+        } else if (ch === "," && !quoted) {
+          row.push(cur);
+          cur = "";
+        } else if ((ch === "\n" || ch === "\r") && !quoted) {
+          if (ch === "\r" && next === "\n") i++;
+          row.push(cur);
+          if (row.some(v => v.length > 0)) rows.push(row);
+          row = [];
+          cur = "";
+        } else {
+          cur += ch;
+        }
+      }
+
+      if (cur.length || row.length) {
+        row.push(cur);
+        if (row.some(v => v.length > 0)) rows.push(row);
+      }
+
+      return rows;
+    }
+
+    async function fetchText(path) {
+      const res = await fetch(path, { cache: "no-store" });
+      if (!res.ok) throw new Error(`${path} not found`);
+      return await res.text();
+    }
+
+    function rowsToObjects(rows) {
+      const header = rows[0];
+      return rows.slice(1).map(row => {
+        const obj = {};
+        header.forEach((key, i) => obj[key] = row[i]);
+        return obj;
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function drawConfusionMatrix(matrix) {
+      const n = matrix.length;
+      canvas.width = n;
+      canvas.height = n;
+
+      let maxValue = 0;
+      for (const row of matrix) {
+        for (const v of row) maxValue = Math.max(maxValue, v);
+      }
+
+      const img = ctx.createImageData(n, n);
+
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          const v = matrix[y][x];
+          const ratio = maxValue ? v / maxValue : 0;
+          const diagonal = x === y;
+          const i = (y * n + x) * 4;
+
+          if (diagonal) {
+            img.data[i + 0] = Math.round(37 - 20 * ratio);
+            img.data[i + 1] = Math.round(99 - 30 * ratio);
+            img.data[i + 2] = Math.round(235 - 80 * ratio);
+          } else {
+            img.data[i + 0] = Math.round(255 - 220 * ratio);
+            img.data[i + 1] = Math.round(255 - 170 * ratio);
+            img.data[i + 2] = Math.round(255 - 170 * ratio);
+          }
+          img.data[i + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(img, 0, 0);
+    }
+
+    function drawClassAccuracyTable(rows) {
+      const data = rows
+        .map(r => ({
+          id: Number(r.class_id),
+          name: r.class_name,
+          correct: Number(r.correct),
+          total: Number(r.total),
+          accuracy: Number(r.accuracy)
+        }))
+        .sort((a, b) => a.accuracy - b.accuracy || a.id - b.id);
+
+      const body = data.map(d => {
+        const pct = d.accuracy * 100;
+        return `
+          <tr>
+            <td class="num">${d.id}</td>
+            <td>${escapeHtml(d.name)}</td>
+            <td class="num">${d.correct}</td>
+            <td class="num">${d.total}</td>
+            <td class="num">${pct.toFixed(2)}%</td>
+            <td class="bar-cell">
+              <div class="bar-bg">
+                <div class="bar-fill" style="width: ${pct.toFixed(2)}%"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      classTable.innerHTML = `
+        <div class="class-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Class</th>
+                <th>Correct</th>
+                <th>Total</th>
+                <th>Accuracy</th>
+                <th>Graph</th>
+              </tr>
+            </thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function loadModel(model) {
+      matrixStatus.textContent = "";
+      classStatus.textContent = "";
+      classTable.innerHTML = "";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      try {
+        const matrixText = await fetchText(model.folder + "confusion_matrix.csv");
+        const matrix = parseCsv(matrixText).map(row => row.map(Number));
+        drawConfusionMatrix(matrix);
+      } catch (err) {
+        matrixStatus.textContent = "confusion_matrix.csv를 찾지 못했습니다.";
+      }
+
+      try {
+        const classText = await fetchText(model.folder + "class_accuracy.csv");
+        const rows = rowsToObjects(parseCsv(classText));
+        drawClassAccuracyTable(rows);
+      } catch (err) {
+        classStatus.textContent = "class_accuracy.csv를 찾지 못했습니다.";
+      }
+    }
+
+    function setActive(modelKey) {
+      for (const button of tabs.querySelectorAll("button")) {
+        button.classList.toggle("active", button.dataset.key === modelKey);
+      }
+    }
+
+    for (const model of models) {
+      const button = document.createElement("button");
+      button.textContent = model.label;
+      button.dataset.key = model.key;
+      button.addEventListener("click", () => {
+        setActive(model.key);
+        loadModel(model);
+      });
+      tabs.appendChild(button);
+    }
+
+    setActive(models[0].key);
+    loadModel(models[0]);
+  </script>
 </body>
 </html>
